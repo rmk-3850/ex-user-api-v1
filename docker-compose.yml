@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:      
+  user-db:
+    image: mariadb:11
+    container_name: user-mariadb
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./docker/mariadb/user/init:/docker-entrypoint-initdb.d
+    networks:
+    - msa-network
+
+networks:
+  msa-network:
+    external: true # 이미 만들어진 인프라 네트워크를 사용함
