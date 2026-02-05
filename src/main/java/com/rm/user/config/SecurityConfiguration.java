@@ -22,7 +22,10 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfiguration {
 	private final JwtTokenProvider tokenProvider;
 	
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http,
+			CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+			CustomAccessDeniedHandler customAccessDeniedHandler
+			) {
 		http.httpBasic(httpBasic->httpBasic.disable())
 			.csrf(csrf->csrf.disable())
 			.sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -30,8 +33,8 @@ public class SecurityConfiguration {
 				.anyRequest().hasRole("USER")
 			)
 			.exceptionHandling(exception->exception
-				.authenticationEntryPoint(new CustomAuthenticationEntryPoint())
-				.accessDeniedHandler(new CustomAccessDeniedHandler())
+				.authenticationEntryPoint(customAuthenticationEntryPoint)
+				.accessDeniedHandler(customAccessDeniedHandler)
 			)
 			.addFilterBefore(new JwtAuthenticationFilter(tokenProvider),
 				UsernamePasswordAuthenticationFilter.class

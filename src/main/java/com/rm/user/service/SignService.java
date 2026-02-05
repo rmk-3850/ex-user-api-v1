@@ -13,8 +13,11 @@ import com.rm.user.dto.SignUpResponseDto;
 import com.rm.user.dto.UpdateRequestDto;
 import com.rm.user.dto.UserResponse;
 import com.rm.user.entity.User;
+import com.rm.user.exception.PasswordNotMatchException;
+import com.rm.user.exception.UserNotFoundException;
 import com.rm.user.infra.JwtTokenProvider;
 import com.rm.user.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -35,12 +38,22 @@ public class SignService {
 	}
 	
 	public User getUserOrThrow(Long id) {
-		return userRepository.findById(id).orElseThrow(()->new RuntimeException());
+		return userRepository.findById(id).orElseThrow(()->new UserNotFoundException());
 	}
 	
 	public boolean passwordIsMatch(Long id,String password) {
 		User user=getUserOrThrow(id);
 		return passwordEncoder.matches(password, user.getPassword());
+	}
+	
+	@Transactional
+	public UserResponse<SignUpResponseDto> select(Long id){
+		User user=getUserOrThrow(id);
+		return UserResponse.success(new SignUpResponseDto(
+				new SignResponseEssence(user.getId(), user.getUid(), user.getName()),
+				user.getPhoneNumber(),
+				user.getEmail()
+		));
 	}
 	
 	@Transactional
@@ -61,8 +74,8 @@ public class SignService {
 	@Transactional
 	public UserResponse<SignInResponseDto> signIn(SignRequestEssence dto){
 		User user=userRepository.getByUid(dto.uid());
-		if(user==null) throw new RuntimeException();
-		if(!passwordEncoder.matches(dto.password(), user.getPassword())) throw new RuntimeException();
+		if(user==null) throw new UserNotFoundException();
+		if(!passwordEncoder.matches(dto.password(), user.getPassword())) throw new PasswordNotMatchException();
 		return UserResponse.success(new SignInResponseDto(
 				new SignResponseEssence(user.getId(), user.getUid(), user.getName()),
 				tokenProvider.createToken(user.getUid(), user.getRoles())
@@ -88,6 +101,6 @@ public class SignService {
 	public UserResponse<Void> delete(Long id){
 		User user=getUserOrThrow(id);
 		userRepository.delete(user);
-		return new UserResponse<>(true, ErrorCode.SUCCESS.getCode(), ErrorCode.SUCCESS.getMsg(), null);
+		return new UserResponse<>(true, ErrorCode.SUCCESS.getStatus(), ErrorCode.SUCCESS.getCode(), ErrorCode.SUCCESS.getMsg(), null);
 	}
 }
